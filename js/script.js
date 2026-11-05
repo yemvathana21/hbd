@@ -116,6 +116,34 @@
     viewFull: { en: 'View Full', km: 'មើលរូបពេញ' },
     photoWord: { en: 'Photo', km: 'រូបថត' },
     photoOf: { en: 'of', km: 'នៃ' },
+    gallerySwapHint: {
+      en: 'Tap the camera on any photo to add your own — saved in this browser.',
+      km: 'ចុចរូបកាមេរ៉ាលើរូបថតណាមួយ ដើម្បីបន្ថែមរូបថតរបស់អ្នក — រក្សាទុកក្នុងកម្មវិធីរុករកនេះ។',
+    },
+    swapPhoto: { en: 'Change this photo', km: 'ប្តូររូបថតនេះ' },
+    photoSaved: { en: 'Photo updated ♡', km: 'រូបថតត្រូវបានធ្វើបច្ចុប្បន្នភាព ♡' },
+    photoErrorType: {
+      en: 'Please choose an image file.',
+      km: 'សូមជ្រើសរើសឯកសាររូបភាព។',
+    },
+    photoErrorSize: {
+      en: 'That image is too large. Please choose one under 25 MB.',
+      km: 'រូបភាពនេះធំពេក។ សូមជ្រើសរើសរូបភាពតូចជាង ២៥ MB។',
+    },
+    photoErrorGeneric: {
+      en: 'Sorry, that photo could not be saved.',
+      km: 'សូមទោស រូបថតនេះមិនអាចរក្សាទុកបានទេ។',
+    },
+    resetPhotos: { en: 'Reset photos', km: 'កំណត់រូបថតឡើងវិញ' },
+    photosReset: {
+      en: 'Original photos restored',
+      km: 'រូបថតដើមត្រូវបានស្ដារឡើងវិញ',
+    },
+    resetPhotosConfirm: {
+      en: 'Restore all original photos? Your added photos will be removed from this browser.',
+      km: 'ស្ដាររូបថតដើមទាំងអស់? រូបថតដែលអ្នកបានបន្ថែមនឹងត្រូវលុបចេញពីកម្មវិធីរុករកនេះ។',
+    },
+    backToTop: { en: 'Back to top', km: 'ត្រឡប់ទៅខាងលើ' },
 
     // Gallery Guide Box
     guideTitle: {
@@ -554,6 +582,9 @@
   let activeFilteredList = [...galleryItems];
   let lastFocusedElement = null;
 
+  // Remember the original placeholder images so the reset button can restore them.
+  const defaultPhotoSources = new Map(galleryItems.map((item) => [item.id, item.src]));
+
   /* ==========================================================================
      3. DOM ELEMENTS & TEXT LOCALIZATION
      ========================================================================== */
@@ -613,6 +644,13 @@
     const introOpenBtn = document.getElementById('open-surprise-btn');
     if (introOpenBtn) {
       introOpenBtn.setAttribute('aria-label', t('boomButton'));
+    }
+
+    // Back to top button label
+    const backToTopBtn = document.getElementById('back-to-top-btn');
+    if (backToTopBtn) {
+      backToTopBtn.setAttribute('aria-label', t('backToTop'));
+      backToTopBtn.title = t('backToTop');
     }
 
     // Filter Buttons
@@ -746,31 +784,48 @@
     activeFilteredList.forEach((item, index) => {
       const card = document.createElement('article');
       card.className = 'gallery-card fade-in-element';
-      card.setAttribute('tabindex', '0');
-      card.setAttribute('role', 'button');
-      
+      card.dataset.photoId = String(item.id);
+      card.style.setProperty('--reveal-delay', `${(index % 6) * 70}ms`);
+
       const itemTitle = item.title[currentLang] || item.title['en'];
       const itemCaption = item.caption[currentLang] || item.caption['en'];
       const itemCategory = item.categoryLabel[currentLang] || item.categoryLabel['en'];
       const photoNumStr = currentLang === 'km' ? toKhmerDigits(item.id) : String(item.id).padStart(2, '0');
       const photoWordStr = t('photoWord');
-
-      card.setAttribute('aria-label', `${photoWordStr} ${photoNumStr}: ${itemTitle}`);
+      const viewLabel = `${t('viewFull')} — ${photoWordStr} ${photoNumStr}: ${itemTitle}`;
+      const swapLabel = `${t('swapPhoto')} — ${photoWordStr} ${photoNumStr}`;
 
       card.innerHTML = `
         <div class="photo-wrapper">
-          <img src="${item.src}" alt="${itemTitle}" loading="lazy" />
-          <div class="photo-overlay">
-            <span class="overlay-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                <line x1="11" y1="8" x2="11" y2="14"></line>
-                <line x1="8" y1="11" x2="14" y2="11"></line>
-              </svg>
-              ${t('viewFull')}
+          <button class="photo-open-btn" type="button" aria-label="${viewLabel}">
+            <img src="${item.src}" alt="${itemTitle}" loading="lazy" />
+            <span class="photo-overlay" aria-hidden="true">
+              <span class="overlay-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="11" y1="8" x2="11" y2="14"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+                ${t('viewFull')}
+              </span>
             </span>
-          </div>
+          </button>
+
+          <button class="photo-swap-btn" type="button" title="${t('swapPhoto')}" aria-label="${swapLabel}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 7h3l2-3h6l2 3h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+          </button>
+
+          <input
+            class="photo-file-input"
+            type="file"
+            accept="image/*"
+            data-photo-id="${item.id}"
+            hidden
+          />
         </div>
         <div class="card-meta">
           <div class="card-header-row">
@@ -781,14 +836,6 @@
           <p class="card-caption">${itemCaption}</p>
         </div>
       `;
-
-      card.addEventListener('click', () => openLightbox(index));
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openLightbox(index);
-        }
-      });
 
       galleryGrid.appendChild(card);
     });
@@ -805,6 +852,369 @@
       renderGallery();
     });
   });
+
+  // Delegated gallery actions: open the lightbox or replace a photo.
+  if (galleryGrid) {
+    galleryGrid.addEventListener('click', (event) => {
+      if (event.target.classList.contains('photo-file-input')) {
+        event.stopPropagation();
+        return;
+      }
+
+      const swapBtn = event.target.closest('.photo-swap-btn');
+      if (swapBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        const card = swapBtn.closest('.gallery-card');
+        const input = card && card.querySelector('.photo-file-input');
+        if (input) {
+          input.value = '';
+          input.click();
+        }
+        return;
+      }
+
+      const card = event.target.closest('.gallery-card');
+      if (!card) return;
+      const photoId = Number(card.dataset.photoId);
+      const index = activeFilteredList.findIndex((item) => item.id === photoId);
+      if (index !== -1) openLightbox(index);
+    });
+
+    galleryGrid.addEventListener('change', (event) => {
+      const input = event.target.closest('.photo-file-input');
+      if (!input) return;
+      event.stopPropagation();
+      const file = input.files && input.files[0];
+      const card = input.closest('.gallery-card');
+      const photoId = Number(input.dataset.photoId);
+      input.value = '';
+      if (file && card) handlePhotoFile(file, photoId, card);
+    });
+  }
+
+  const resetPhotosBtn = document.getElementById('reset-photos-btn');
+  if (resetPhotosBtn) {
+    resetPhotosBtn.addEventListener('click', resetGalleryPhotos);
+  }
+
+  /* ==========================================================================
+     4b. PHOTO SWAP — UPLOAD, PERSIST IN THE BROWSER, AND RESET
+     ========================================================================== */
+  const PHOTO_DB_NAME = 'soriya_birthday_photos';
+  const PHOTO_DB_VERSION = 1;
+  const PHOTO_STORE_NAME = 'photos';
+  const PHOTO_LS_PREFIX = 'soriya_custom_photo_';
+  const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+  const MAX_PHOTO_DIMENSION = 1600;
+  const MAX_DATA_URL_LENGTH = 1400000;
+
+  let photoDbPromise = null;
+  let photoToast = null;
+  let photoToastTimer = null;
+
+  function openPhotoDatabase() {
+    if (photoDbPromise) return photoDbPromise;
+
+    photoDbPromise = new Promise((resolve, reject) => {
+      if (!('indexedDB' in window)) {
+        reject(new Error('IndexedDB is unavailable'));
+        return;
+      }
+
+      let request;
+      try {
+        request = window.indexedDB.open(PHOTO_DB_NAME, PHOTO_DB_VERSION);
+      } catch (error) {
+        reject(error);
+        return;
+      }
+
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(PHOTO_STORE_NAME)) {
+          db.createObjectStore(PHOTO_STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('Could not open photo storage'));
+      request.onblocked = () => reject(new Error('Photo storage is blocked'));
+    }).catch((error) => {
+      // Allow a later attempt (for example after the browser unblocks storage).
+      photoDbPromise = null;
+      throw error;
+    });
+
+    return photoDbPromise;
+  }
+
+  function readAllPhotoRecords(db) {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(PHOTO_STORE_NAME, 'readonly');
+      const request = transaction.objectStore(PHOTO_STORE_NAME).getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error || new Error('Could not read photos'));
+    });
+  }
+
+  function savePhotoRecord(id, dataUrl) {
+    return openPhotoDatabase()
+      .then(
+        (db) =>
+          new Promise((resolve, reject) => {
+            const transaction = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+            transaction.objectStore(PHOTO_STORE_NAME).put({
+              id,
+              dataUrl,
+              updatedAt: Date.now(),
+            });
+            transaction.oncomplete = () => resolve(true);
+            transaction.onerror = () =>
+              reject(transaction.error || new Error('Could not save photo'));
+            transaction.onabort = () =>
+              reject(transaction.error || new Error('Could not save photo'));
+          })
+      )
+      .then(() => {
+        try {
+          localStorage.removeItem(PHOTO_LS_PREFIX + id);
+        } catch (error) {
+          // Ignore storage cleanup failures.
+        }
+        return true;
+      })
+      .catch(() => {
+        // localStorage keeps the feature working on file:// in browsers that
+        // block IndexedDB, even though it has a smaller quota.
+        try {
+          localStorage.setItem(PHOTO_LS_PREFIX + id, dataUrl);
+          return true;
+        } catch (error) {
+          return false;
+        }
+      });
+  }
+
+  function loadSavedPhotos() {
+    const saved = new Map();
+
+    return openPhotoDatabase()
+      .then(readAllPhotoRecords)
+      .then((records) => {
+        records.forEach((record) => {
+          if (record && record.dataUrl) saved.set(Number(record.id), record.dataUrl);
+        });
+      })
+      .catch(() => {
+        // Fall back to localStorage below.
+      })
+      .then(() => {
+        galleryItems.forEach((item) => {
+          if (saved.has(item.id)) return;
+          try {
+            const dataUrl = localStorage.getItem(PHOTO_LS_PREFIX + item.id);
+            if (dataUrl) saved.set(item.id, dataUrl);
+          } catch (error) {
+            // Storage can be unavailable in private browsing.
+          }
+        });
+
+        saved.forEach((dataUrl, id) => {
+          if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return;
+          const item = galleryItems.find((entry) => entry.id === id);
+          if (item) item.src = dataUrl;
+        });
+
+        updateResetButton();
+        return saved.size;
+      });
+  }
+
+  function clearSavedPhotos() {
+    const clearDatabase = openPhotoDatabase()
+      .then(
+        (db) =>
+          new Promise((resolve, reject) => {
+            const transaction = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+            transaction.objectStore(PHOTO_STORE_NAME).clear();
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () =>
+              reject(transaction.error || new Error('Could not clear photos'));
+            transaction.onabort = () =>
+              reject(transaction.error || new Error('Could not clear photos'));
+          })
+      )
+      .catch(() => {
+        // localStorage is cleared below regardless.
+      });
+
+    return clearDatabase.then(() => {
+      try {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith(PHOTO_LS_PREFIX)) localStorage.removeItem(key);
+        });
+      } catch (error) {
+        // Ignore storage cleanup failures.
+      }
+    });
+  }
+
+  function hasCustomPhotos() {
+    return galleryItems.some((item) => item.src !== defaultPhotoSources.get(item.id));
+  }
+
+  function updateResetButton() {
+    const button = document.getElementById('reset-photos-btn');
+    if (button) button.hidden = !hasCustomPhotos();
+  }
+
+  function showPhotoToast(message, type) {
+    if (!photoToast) {
+      photoToast = document.createElement('div');
+      photoToast.className = 'photo-toast';
+      photoToast.setAttribute('role', 'status');
+      photoToast.setAttribute('aria-live', 'polite');
+      document.body.appendChild(photoToast);
+    }
+
+    photoToast.textContent = message;
+    photoToast.dataset.type = type || 'success';
+    photoToast.classList.remove('show');
+    void photoToast.offsetWidth;
+    photoToast.classList.add('show');
+
+    window.clearTimeout(photoToastTimer);
+    photoToastTimer = window.setTimeout(() => {
+      photoToast.classList.remove('show');
+    }, 3200);
+  }
+
+  function decodeImageFile(file) {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => resolve({ image, objectUrl });
+      image.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Could not read the image'));
+      };
+      image.src = objectUrl;
+    });
+  }
+
+  function preparePhoto(file) {
+    return decodeImageFile(file).then(({ image, objectUrl }) => {
+      try {
+        const width = image.naturalWidth || image.width;
+        const height = image.naturalHeight || image.height;
+        if (!width || !height) throw new Error('The image is empty');
+
+        const scale = Math.min(1, MAX_PHOTO_DIMENSION / Math.max(width, height));
+        const targetWidth = Math.max(1, Math.round(width * scale));
+        const targetHeight = Math.max(1, Math.round(height * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Canvas is unavailable');
+
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, targetWidth, targetHeight);
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+        context.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+        let quality = 0.86;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        while (dataUrl.length > MAX_DATA_URL_LENGTH && quality > 0.55) {
+          quality -= 0.07;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        return dataUrl;
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    });
+  }
+
+  function handlePhotoFile(file, id, card) {
+    if (!file) return;
+
+    if (!file.type || !file.type.startsWith('image/')) {
+      showPhotoToast(t('photoErrorType'), 'error');
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      showPhotoToast(t('photoErrorSize'), 'error');
+      return;
+    }
+
+    if (card) card.classList.add('is-swapping');
+
+    preparePhoto(file)
+      .then((dataUrl) =>
+        savePhotoRecord(id, dataUrl).then((saved) => {
+          if (!saved) throw new Error('Could not save the photo');
+
+          const item = galleryItems.find((entry) => entry.id === id);
+          if (!item) throw new Error('Could not find the photo');
+
+          item.src = dataUrl;
+
+          const targetCard = card || galleryGrid.querySelector(`[data-photo-id="${id}"]`);
+          if (targetCard) {
+            const image = targetCard.querySelector('.photo-open-btn img');
+            if (image) {
+              image.classList.remove('photo-updated');
+              void image.offsetWidth;
+              image.src = dataUrl;
+              image.classList.add('photo-updated');
+            }
+          }
+
+          updateResetButton();
+
+          if (lightboxModal && lightboxModal.classList.contains('active')) {
+            const activeItem = activeFilteredList[activeLightboxIndex];
+            if (activeItem && activeItem.id === id) updateLightboxContent();
+          }
+
+          showPhotoToast(t('photoSaved'));
+        })
+      )
+      .catch(() => {
+        showPhotoToast(t('photoErrorGeneric'), 'error');
+      })
+      .finally(() => {
+        if (card) card.classList.remove('is-swapping');
+      });
+  }
+
+  function resetGalleryPhotos() {
+    if (!hasCustomPhotos()) return;
+
+    const confirmMessage = t('resetPhotosConfirm');
+    if (typeof window.confirm === 'function' && !window.confirm(confirmMessage)) return;
+
+    galleryItems.forEach((item) => {
+      item.src = defaultPhotoSources.get(item.id);
+    });
+
+    clearSavedPhotos().finally(() => {
+      updateResetButton();
+      renderGallery();
+      observeFadeInElements();
+
+      if (lightboxModal && lightboxModal.classList.contains('active')) {
+        updateLightboxContent();
+      }
+
+      showPhotoToast(t('photosReset'));
+    });
+  }
 
   /* ==========================================================================
      5. LIGHTBOX FUNCTIONALITY
@@ -1173,6 +1583,7 @@
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     surpriseIntro.classList.add('booming');
+    document.body.classList.add('hero-revealed');
     createConfettiBurst();
 
     // Opening the gift is a user gesture, so the music can start right away.
@@ -1354,11 +1765,81 @@
   }
 
   /* ==========================================================================
+     10b. SOFT MOTION: STAGGERED REVEALS, SCROLL PROGRESS, BACK TO TOP
+     ========================================================================== */
+  function applyRevealStagger() {
+    document.querySelectorAll('.wishes-grid .wish-card').forEach((card, index) => {
+      card.style.setProperty('--reveal-delay', `${index * 90}ms`);
+    });
+  }
+
+  function initScrollUi() {
+    const progressBar = document.getElementById('scroll-progress-bar');
+    const backToTopBtn = document.getElementById('back-to-top-btn');
+    let ticking = false;
+
+    const update = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = scrollable > 0 ? Math.min(1, Math.max(0, scrollTop / scrollable)) : 0;
+
+      if (progressBar) progressBar.style.transform = `scaleX(${progress})`;
+      if (backToTopBtn) backToTopBtn.classList.toggle('visible', scrollTop > 560);
+      ticking = false;
+    };
+
+    const requestUpdate = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(update);
+    };
+
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', requestUpdate);
+
+    if (backToTopBtn) {
+      backToTopBtn.addEventListener('click', () => {
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+      });
+    }
+
+    update();
+  }
+
+  /* ==========================================================================
      11. INITIALIZATION
      ========================================================================== */
   function init() {
+    // The hero gently rises once the gift gate opens. Without JavaScript the
+    // class is never added, so the hero stays visible.
+    if (document.getElementById('surprise-intro')) {
+      document.body.classList.add('hero-primed');
+    }
+
     applyLanguage(currentLang);
+    applyRevealStagger();
     observeFadeInElements();
+    initScrollUi();
+
+    loadSavedPhotos().then((savedCount) => {
+      if (!savedCount) return;
+
+      // Update the already-rendered cards in place so the reveal animation
+      // does not restart when saved photos finish loading.
+      galleryItems.forEach((item) => {
+        if (!galleryGrid) return;
+        const card = galleryGrid.querySelector(`.gallery-card[data-photo-id="${item.id}"]`);
+        const image = card && card.querySelector('.photo-open-btn img');
+        if (image && image.getAttribute('src') !== item.src) {
+          image.src = item.src;
+        }
+      });
+
+      if (lightboxModal && lightboxModal.classList.contains('active')) {
+        updateLightboxContent();
+      }
+    });
   }
 
   if (document.readyState === 'loading') {

@@ -36,10 +36,19 @@
         body.intro-active {
           overflow: auto !important;
         }
+        .fade-in-element {
+          opacity: 1 !important;
+          translate: none !important;
+        }
       </style>
     </noscript>
   </head>
   <body class="intro-active">
+    <!-- Soft reading-progress bar -->
+    <div id="scroll-progress" class="scroll-progress" aria-hidden="true">
+      <span id="scroll-progress-bar" class="scroll-progress-bar"></span>
+    </div>
+
     <!-- ========================================================
          OPENING SURPRISE GATE
          ======================================================== -->
@@ -297,6 +306,46 @@
                 Warm Memories
               </button>
             </div>
+
+            <!-- Photo swap tools -->
+            <div class="gallery-tools fade-in-element">
+              <span class="gallery-swap-hint">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 7h3l2-3h6l2 3h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                <span data-i18n="gallerySwapHint">
+                  Tap the camera on any photo to add your own — saved in this browser.
+                </span>
+              </span>
+              <button id="reset-photos-btn" class="reset-photos-btn" type="button" hidden>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                  <polyline points="3 3 3 9 9 9"></polyline>
+                </svg>
+                <span data-i18n="resetPhotos">Reset photos</span>
+              </button>
+            </div>
           </div>
 
           <!-- Pinterest-style Masonry Gallery Container -->
@@ -533,6 +582,30 @@
         </div>
       </div>
     </div>
+
+    <!-- Back to top -->
+    <button
+      id="back-to-top-btn"
+      class="back-to-top-btn"
+      type="button"
+      aria-label="Back to top"
+      title="Back to top"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <line x1="12" y1="19" x2="12" y2="5"></line>
+        <polyline points="5 12 12 5 19 12"></polyline>
+      </svg>
+    </button>
 
     <!-- ========================================================
          BACKGROUND MUSIC PLAYER WIDGET
