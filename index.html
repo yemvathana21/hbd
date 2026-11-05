@@ -26,8 +26,73 @@
 
     <!-- Stylesheet -->
     <link rel="stylesheet" href="css/style.css" />
+
+    <!-- If JavaScript is off, never trap the visitor behind the intro gate -->
+    <noscript>
+      <style>
+        #surprise-intro {
+          display: none !important;
+        }
+        body.intro-active {
+          overflow: auto !important;
+        }
+      </style>
+    </noscript>
   </head>
-  <body>
+  <body class="intro-active">
+    <!-- ========================================================
+         OPENING SURPRISE GATE
+         ======================================================== -->
+    <div
+      id="surprise-intro"
+      class="surprise-intro"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="boom-title"
+      aria-describedby="boom-subtitle"
+    >
+      <div class="boom-decor" aria-hidden="true">
+        <div class="boom-glow boom-glow-1"></div>
+        <div class="boom-glow boom-glow-2"></div>
+
+        <div class="boom-sparkles">
+          <span>✦</span>
+          <span>♡</span>
+          <span>✧</span>
+          <span>♡</span>
+          <span>✦</span>
+        </div>
+      </div>
+
+      <div class="boom-content">
+        <span class="boom-kicker" data-i18n="boomKicker">A little surprise is waiting</span>
+        <h2 id="boom-title" class="boom-title" data-i18n="boomTitle">Ready to boom?</h2>
+        <p id="boom-subtitle" class="boom-subtitle" data-i18n="boomSubtitle">
+          Something special is hiding inside. Tap the gift to open it.
+        </p>
+
+        <button
+          id="open-surprise-btn"
+          class="gift-box-btn"
+          type="button"
+          aria-label="Open the birthday surprise"
+          autofocus
+        >
+          <span class="gift-box" aria-hidden="true">
+            <span class="gift-lid">
+              <span class="gift-bow"></span>
+            </span>
+            <span class="gift-body">
+              <span class="gift-ribbon"></span>
+            </span>
+          </span>
+          <span class="gift-hint" data-i18n="boomButton">Tap to open</span>
+        </button>
+
+        <span class="boom-note" data-i18n="boomNote">Made with love for Soriya ♡</span>
+      </div>
+    </div>
+
     <!-- Floating Petals & Hearts Background Canvas -->
     <canvas id="petals-canvas" aria-hidden="true"></canvas>
 

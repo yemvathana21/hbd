@@ -34,6 +34,28 @@
     menuOpen: { en: 'Open navigation menu', km: 'បើកម៉ឺនុយរុករក' },
     menuClose: { en: 'Close navigation menu', km: 'បិទម៉ឺនុយរុករក' },
 
+    // Opening Surprise Gate
+    boomKicker: {
+      en: 'A little surprise is waiting',
+      km: 'កាដូតូចមួយកំពុងរង់ចាំ',
+    },
+    boomTitle: {
+      en: 'Ready to boom?',
+      km: 'តើអ្នករួចរាល់ហើយឬ?',
+    },
+    boomSubtitle: {
+      en: 'Something special is hiding inside. Tap the gift to open it.',
+      km: 'មានអ្វីពិសេសលាក់នៅខាងក្នុង។ ចុចលើកាដូដើម្បីបើកវា។',
+    },
+    boomButton: {
+      en: 'Tap to open',
+      km: 'ចុចដើម្បីបើក',
+    },
+    boomNote: {
+      en: 'Made with love for Soriya ♡',
+      km: 'បង្កើតឡើងដោយក្តីស្រឡាញ់សម្រាប់ សូរិយា ♡',
+    },
+
     // Hero Section
     heroTag: {
       en: 'A SPECIAL DAY FOR SOMEONE SPECIAL',
@@ -587,6 +609,12 @@
       menuToggle.setAttribute('aria-label', isMenuOpen ? t('menuClose') : t('menuOpen'));
     }
 
+    // Opening surprise gate button label
+    const introOpenBtn = document.getElementById('open-surprise-btn');
+    if (introOpenBtn) {
+      introOpenBtn.setAttribute('aria-label', t('boomButton'));
+    }
+
     // Filter Buttons
     const btnAll = document.querySelector('[data-category="all"]');
     const btnJoy = document.querySelector('[data-category="joy"]');
@@ -1080,6 +1108,119 @@
 
   if (musicToggleBtn) {
     musicToggleBtn.addEventListener('click', toggleMusic);
+  }
+
+  /* ==========================================================================
+     7b. OPENING SURPRISE GATE — "READY TO BOOM?"
+     ========================================================================== */
+  const surpriseIntro = document.getElementById('surprise-intro');
+  const openSurpriseBtn = document.getElementById('open-surprise-btn');
+
+  function setPageInert(isInert) {
+    const pageRegions = document.querySelectorAll(
+      'body > header, body > main, body > footer, body > aside, #petals-canvas'
+    );
+    pageRegions.forEach((region) => {
+      if (isInert) {
+        region.setAttribute('inert', '');
+      } else {
+        region.removeAttribute('inert');
+      }
+    });
+  }
+
+  function createConfettiBurst() {
+    if (!surpriseIntro) return;
+
+    const colors = ['#E56B6F', '#F4ACB7', '#FAD2E1', '#DDA15E', '#FFF1E6', '#C97A7E'];
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const pieceCount = prefersReducedMotion ? 0 : 36;
+    const spreadX = Math.min(window.innerWidth * 0.85, 760);
+    const spreadY = Math.min(window.innerHeight * 0.55, 380);
+
+    for (let i = 0; i < pieceCount; i++) {
+      const piece = document.createElement('span');
+      piece.className = 'boom-confetti';
+      piece.setAttribute('aria-hidden', 'true');
+      piece.style.background = colors[i % colors.length];
+
+      const x = (Math.random() - 0.5) * spreadX;
+      const y = 60 - Math.random() * spreadY;
+      const rotation = Math.random() * 720 - 360;
+
+      piece.style.setProperty('--x', `${x.toFixed(0)}px`);
+      piece.style.setProperty('--y', `${y.toFixed(0)}px`);
+      piece.style.setProperty('--r', `${rotation.toFixed(0)}deg`);
+      piece.style.setProperty('--delay', `${(Math.random() * 0.12).toFixed(2)}s`);
+
+      surpriseIntro.appendChild(piece);
+    }
+
+    window.setTimeout(() => {
+      surpriseIntro.querySelectorAll('.boom-confetti').forEach((piece) => piece.remove());
+    }, 1800);
+  }
+
+  function openSurprise() {
+    if (!surpriseIntro) return;
+    if (
+      surpriseIntro.classList.contains('booming') ||
+      surpriseIntro.classList.contains('intro-hidden')
+    ) {
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    surpriseIntro.classList.add('booming');
+    createConfettiBurst();
+
+    // Opening the gift is a user gesture, so the music can start right away.
+    if (!isPlaying) {
+      toggleMusic();
+    }
+
+    window.setTimeout(
+      () => {
+        surpriseIntro.classList.add('intro-hidden');
+        document.body.classList.remove('intro-active');
+        setPageInert(false);
+
+        const heroHeading = document.querySelector('.hero-title');
+        if (heroHeading) {
+          heroHeading.setAttribute('tabindex', '-1');
+          heroHeading.focus({ preventScroll: true });
+        }
+
+        surpriseIntro.setAttribute('aria-hidden', 'true');
+
+        window.setTimeout(
+          () => {
+            surpriseIntro.style.display = 'none';
+          },
+          prefersReducedMotion ? 0 : 800
+        );
+      },
+      prefersReducedMotion ? 0 : 700
+    );
+  }
+
+  if (surpriseIntro && openSurpriseBtn) {
+    setPageInert(true);
+
+    openSurpriseBtn.addEventListener('click', openSurprise);
+
+    // Let keyboard visitors skip the gate with Escape too.
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !surpriseIntro.classList.contains('intro-hidden')) {
+        openSurprise();
+      }
+    });
+
+    // Put focus on the gift so it can be opened with Enter/Space.
+    window.setTimeout(() => {
+      openSurpriseBtn.focus({ preventScroll: true });
+    }, 60);
   }
 
   /* ==========================================================================
